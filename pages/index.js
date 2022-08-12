@@ -1,203 +1,134 @@
-import Head from 'next/head'
+import React, { useCallback, useEffect } from "react";
+import "gantt-schedule-timeline-calendar/dist/style.css";
+
+let GSTC, gstc, state;
+
+async function initializeGSTC(element) {
+  GSTC = (await import("gantt-schedule-timeline-calendar")).default;
+  const TimelinePointer = (await import("gantt-schedule-timeline-calendar/dist/plugins/timeline-pointer.esm.min.js"))
+    .Plugin;
+  const Selection = (await import("gantt-schedule-timeline-calendar/dist/plugins/selection.esm.min.js")).Plugin;
+  const ItemResizing = (await import("gantt-schedule-timeline-calendar/dist/plugins/item-resizing.esm.min.js")).Plugin;
+  const ItemMovement = (await import("gantt-schedule-timeline-calendar/dist/plugins/item-movement.esm.min.js")).Plugin;
+
+  // helper functions
+
+  function generateRows() {
+    /**
+     * @type { import("gantt-schedule-timeline-calendar").Rows }
+     */
+    const rows = {};
+    for (let i = 0; i < 100; i++) {
+      const id = GSTC.api.GSTCID(i.toString());
+      rows[id] = {
+        id,
+        label: `Row ${i}`,
+      };
+    }
+    return rows;
+  }
+
+  function generateItems() {
+    /**
+     * @type { import("gantt-schedule-timeline-calendar").Items }
+     */
+    const items = {};
+    // @ts-ignore
+    let start = GSTC.api.date().startOf("day").subtract(6, "day");
+    for (let i = 0; i < 100; i++) {
+      const id = GSTC.api.GSTCID(i.toString());
+      const rowId = GSTC.api.GSTCID(Math.floor(Math.random() * 100).toString());
+      start = start.add(1, "day");
+      items[id] = {
+        id,
+        label: `Item ${i}`,
+        rowId,
+        time: {
+          start: start.valueOf(),
+          end: start.add(1, "day").endOf("day").valueOf(),
+        },
+      };
+    }
+    return items;
+  }
+
+  /**
+   * @type { import("gantt-schedule-timeline-calendar").Config }
+   */
+  const config = {
+    licenseKey:
+      "====BEGIN LICENSE KEY====\nXOfH/lnVASM6et4Co473t9jPIvhmQ/l0X3Ewog30VudX6GVkOB0n3oDx42NtADJ8HjYrhfXKSNu5EMRb5KzCLvMt/pu7xugjbvpyI1glE7Ha6E5VZwRpb4AC8T1KBF67FKAgaI7YFeOtPFROSCKrW5la38jbE5fo+q2N6wAfEti8la2ie6/7U2V+SdJPqkm/mLY/JBHdvDHoUduwe4zgqBUYLTNUgX6aKdlhpZPuHfj2SMeB/tcTJfH48rN1mgGkNkAT9ovROwI7ReLrdlHrHmJ1UwZZnAfxAC3ftIjgTEHsd/f+JrjW6t+kL6Ef1tT1eQ2DPFLJlhluTD91AsZMUg==||U2FsdGVkX1/SWWqU9YmxtM0T6Nm5mClKwqTaoF9wgZd9rNw2xs4hnY8Ilv8DZtFyNt92xym3eB6WA605N5llLm0D68EQtU9ci1rTEDopZ1ODzcqtTVSoFEloNPFSfW6LTIC9+2LSVBeeHXoLEQiLYHWihHu10Xll3KsH9iBObDACDm1PT7IV4uWvNpNeuKJc\npY3C5SG+3sHRX1aeMnHlKLhaIsOdw2IexjvMqocVpfRpX4wnsabNA0VJ3k95zUPS3vTtSegeDhwbl6j+/FZcGk9i+gAy6LuetlKuARjPYn2LH5Be3Ah+ggSBPlxf3JW9rtWNdUoFByHTcFlhzlU9HnpnBUrgcVMhCQ7SAjN9h2NMGmCr10Rn4OE0WtelNqYVig7KmENaPvFT+k2I0cYZ4KWwxxsQNKbjEAxJxrzK4HkaczCvyQbzj4Ppxx/0q+Cns44OeyWcwYD/vSaJm4Kptwpr+L4y5BoSO/WeqhSUQQ85nvOhtE0pSH/ZXYo3pqjPdQRfNm6NFeBl2lwTmZUEuw==\n====END LICENSE KEY====",
+    plugins: [TimelinePointer(), Selection(), ItemResizing(), ItemMovement()],
+    list: {
+      columns: {
+        data: {
+          [GSTC.api.GSTCID("id")]: {
+            id: GSTC.api.GSTCID("id"),
+            width: 60,
+            data: ({ row }) => GSTC.api.sourceID(row.id),
+            header: {
+              content: "ID",
+            },
+          },
+          [GSTC.api.GSTCID("label")]: {
+            id: GSTC.api.GSTCID("label"),
+            width: 200,
+            data: "label",
+            header: {
+              content: "Label",
+            },
+          },
+        },
+      },
+      rows: generateRows(),
+    },
+    chart: {
+      items: generateItems(),
+    },
+  };
+
+  state = GSTC.api.stateFromConfig(config);
+
+  gstc = GSTC({
+    element,
+    state,
+  });
+}
 
 export default function Home() {
+  const callback = useCallback((element) => {
+    if (element) initializeGSTC(element);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (gstc) {
+        gstc.destroy();
+      }
+    };
+  });
+
+  function updateFirstRow() {
+    if (!GSTC || !state) return;
+    state.update(`config.list.rows.${GSTC.api.GSTCID("0")}`, (row) => {
+      row.label = "Changed dynamically";
+      return row;
+    });
+  }
+
   return (
     <div className="container">
-      <Head>
-        <title>Create Next App</title>
-        <link rel="icon" href="/favicon.ico" />
-      </Head>
-
-      <main>
-        <h1 className="title">
-          Welcome to <a href="https://nextjs.org">Next.js!</a>
-        </h1>
-
-        <p className="description">
-          Get started by editing <code>pages/index.js</code>
-        </p>
-
-        <div className="grid">
-          <a href="https://nextjs.org/docs" className="card">
-            <h3>Documentation &rarr;</h3>
-            <p>Find in-depth information about Next.js features and API.</p>
-          </a>
-
-          <a href="https://nextjs.org/learn" className="card">
-            <h3>Learn &rarr;</h3>
-            <p>Learn about Next.js in an interactive course with quizzes!</p>
-          </a>
-
-          <a
-            href="https://github.com/vercel/next.js/tree/master/examples"
-            className="card"
-          >
-            <h3>Examples &rarr;</h3>
-            <p>Discover and deploy boilerplate example Next.js projects.</p>
-          </a>
-
-          <a
-            href="https://vercel.com/import?filter=next.js&utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-            className="card"
-          >
-            <h3>Deploy &rarr;</h3>
-            <p>
-              Instantly deploy your Next.js site to a public URL with Vercel.
-            </p>
-          </a>
-        </div>
-      </main>
-
-      <footer>
-        <a
-          href="https://vercel.com?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Powered by{' '}
-          <img src="/vercel.svg" alt="Vercel" className="logo" />
-        </a>
-      </footer>
-
-      <style jsx>{`
-        .container {
-          min-height: 100vh;
-          padding: 0 0.5rem;
-          display: flex;
-          flex-direction: column;
-          justify-content: center;
-          align-items: center;
-        }
-
-        main {
-          padding: 5rem 0;
-          flex: 1;
-          display: flex;
-          flex-direction: column;
-          justify-content: center;
-          align-items: center;
-        }
-
-        footer {
-          width: 100%;
-          height: 100px;
-          border-top: 1px solid #eaeaea;
-          display: flex;
-          justify-content: center;
-          align-items: center;
-        }
-
-        footer img {
-          margin-left: 0.5rem;
-        }
-
-        footer a {
-          display: flex;
-          justify-content: center;
-          align-items: center;
-        }
-
-        a {
-          color: inherit;
-          text-decoration: none;
-        }
-
-        .title a {
-          color: #0070f3;
-          text-decoration: none;
-        }
-
-        .title a:hover,
-        .title a:focus,
-        .title a:active {
-          text-decoration: underline;
-        }
-
-        .title {
-          margin: 0;
-          line-height: 1.15;
-          font-size: 4rem;
-        }
-
-        .title,
-        .description {
-          text-align: center;
-        }
-
-        .description {
-          line-height: 1.5;
-          font-size: 1.5rem;
-        }
-
-        code {
-          background: #fafafa;
-          border-radius: 5px;
-          padding: 0.75rem;
-          font-size: 1.1rem;
-          font-family: Menlo, Monaco, Lucida Console, Liberation Mono,
-            DejaVu Sans Mono, Bitstream Vera Sans Mono, Courier New, monospace;
-        }
-
-        .grid {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          flex-wrap: wrap;
-
-          max-width: 800px;
-          margin-top: 3rem;
-        }
-
-        .card {
-          margin: 1rem;
-          flex-basis: 45%;
-          padding: 1.5rem;
-          text-align: left;
-          color: inherit;
-          text-decoration: none;
-          border: 1px solid #eaeaea;
-          border-radius: 10px;
-          transition: color 0.15s ease, border-color 0.15s ease;
-        }
-
-        .card:hover,
-        .card:focus,
-        .card:active {
-          color: #0070f3;
-          border-color: #0070f3;
-        }
-
-        .card h3 {
-          margin: 0 0 1rem 0;
-          font-size: 1.5rem;
-        }
-
-        .card p {
-          margin: 0;
-          font-size: 1.25rem;
-          line-height: 1.5;
-        }
-
-        .logo {
-          height: 1em;
-        }
-
-        @media (max-width: 600px) {
-          .grid {
-            width: 100%;
-            flex-direction: column;
-          }
-        }
-      `}</style>
+      <button onClick={updateFirstRow}>Change row 1 label</button>
+      <hr />
+      <div id="gstc" ref={callback}></div>
 
       <style jsx global>{`
         html,
         body {
           padding: 0;
           margin: 0;
-          font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto,
-            Oxygen, Ubuntu, Cantarell, Fira Sans, Droid Sans, Helvetica Neue,
-            sans-serif;
+          font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Oxygen, Ubuntu, Cantarell, Fira Sans,
+            Droid Sans, Helvetica Neue, sans-serif;
         }
 
         * {
@@ -205,5 +136,5 @@ export default function Home() {
         }
       `}</style>
     </div>
-  )
+  );
 }
