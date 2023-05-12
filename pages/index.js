@@ -3,13 +3,75 @@ import "gantt-schedule-timeline-calendar/dist/style.css";
 
 let GSTC, gstc, state;
 
+const columnsFromDB = [
+  {
+    id: "id",
+    label: "ID",
+    hidden: false,
+    data: ({ row }) => GSTC.api.sourceID(row.id), // show original id (not internal GSTCID)
+    sortable: ({ row }) => Number(GSTC.api.sourceID(row.id)), // sort by id converted to number
+    width: 80,
+    header: {
+      content: "ID",
+    },
+  },
+  {
+    id: "name",
+    label: "Name",
+    data: "name",
+    sortable: "name",
+    width: 200,
+    hidden: false,
+    header: {
+      content: "Name",
+    },
+  },
+  {
+    id: "surname",
+    label: "Surname",
+    data: "surname",
+    sortable: "surname",
+    width: 200,
+    hidden: false,
+    header: {
+      content: "Surname",
+    },
+  },
+  {
+    id: "progress",
+    label: "Progress",
+    data: "progress",
+    sortable: "progress",
+    hidden: false,
+    width: 200,
+    header: {
+      content: "progress",
+    },
+  },
+];
+
 async function initializeGSTC(element) {
   GSTC = (await import("gantt-schedule-timeline-calendar")).default;
-  const TimelinePointer = (await import("gantt-schedule-timeline-calendar/dist/plugins/timeline-pointer.esm.min.js"))
-    .Plugin;
-  const Selection = (await import("gantt-schedule-timeline-calendar/dist/plugins/selection.esm.min.js")).Plugin;
-  const ItemResizing = (await import("gantt-schedule-timeline-calendar/dist/plugins/item-resizing.esm.min.js")).Plugin;
-  const ItemMovement = (await import("gantt-schedule-timeline-calendar/dist/plugins/item-movement.esm.min.js")).Plugin;
+  const TimelinePointer = (
+    await import(
+      "gantt-schedule-timeline-calendar/dist/plugins/timeline-pointer.esm.min.js"
+    )
+  ).Plugin;
+  const Selection = (
+    await import(
+      "gantt-schedule-timeline-calendar/dist/plugins/selection.esm.min.js"
+    )
+  ).Plugin;
+  const ItemResizing = (
+    await import(
+      "gantt-schedule-timeline-calendar/dist/plugins/item-resizing.esm.min.js"
+    )
+  ).Plugin;
+  const ItemMovement = (
+    await import(
+      "gantt-schedule-timeline-calendar/dist/plugins/item-movement.esm.min.js"
+    )
+  ).Plugin;
 
   // helper functions
 
@@ -61,24 +123,7 @@ async function initializeGSTC(element) {
     plugins: [TimelinePointer(), Selection(), ItemResizing(), ItemMovement()],
     list: {
       columns: {
-        data: {
-          [GSTC.api.GSTCID("id")]: {
-            id: GSTC.api.GSTCID("id"),
-            width: 60,
-            data: ({ row }) => GSTC.api.sourceID(row.id),
-            header: {
-              content: "ID",
-            },
-          },
-          [GSTC.api.GSTCID("label")]: {
-            id: GSTC.api.GSTCID("label"),
-            width: 200,
-            data: "label",
-            header: {
-              content: "Label",
-            },
-          },
-        },
+        data: GSTC.api.fromArray(columnsFromDB),
       },
       rows: generateRows(),
     },
@@ -108,17 +153,26 @@ export default function Home() {
     };
   });
 
-  function updateFirstRow() {
-    if (!GSTC || !state) return;
-    state.update(`config.list.rows.${GSTC.api.GSTCID("0")}`, (row) => {
-      row.label = "Changed dynamically";
-      return row;
-    });
-  }
+  const handChange = (ev) => {
+    state.update(
+      `config.list.columns.data.gstcid-${ev.target.value}.hidden`,
+      !ev.target.checked
+    );
+  };
 
   return (
     <div className="container">
-      <button onClick={updateFirstRow}>Change row 1 label</button>
+      {columnsFromDB.map((item) => (
+        <label key={item.id}>
+          <input
+            type="checkbox"
+            value={item.id}
+            defaultChecked={!item.hidden}
+            onChange={handChange}
+          />
+          {item.label}
+        </label>
+      ))}
       <hr />
       <div id="gstc" ref={callback}></div>
 
@@ -127,8 +181,9 @@ export default function Home() {
         body {
           padding: 0;
           margin: 0;
-          font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Oxygen, Ubuntu, Cantarell, Fira Sans,
-            Droid Sans, Helvetica Neue, sans-serif;
+          font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto,
+            Oxygen, Ubuntu, Cantarell, Fira Sans, Droid Sans, Helvetica Neue,
+            sans-serif;
         }
 
         * {
