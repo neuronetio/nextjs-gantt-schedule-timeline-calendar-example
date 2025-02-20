@@ -6,7 +6,7 @@
     "start": "next start"
   },
   "dependencies": {
-    "gantt-schedule-timeline-calendar": "^3.33.13",
+    "gantt-schedule-timeline-calendar": "^3.40.0",
     "next": "latest",
     "react": "17.0.2",
     "react-dom": "17.0.2"
